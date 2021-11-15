@@ -151,11 +151,13 @@ def single_analysis():
         st.write("Consumers that were related to these recall are 60% female and 40% male, from 16 to 65 years old")
         st.write("Most of the reactions are: __Headache, Diarrhoea, Coeliac Disease__")
     
+    st.write("We also found some interested information about some similar product got food poisoned at the area of the __Company A__")
     with st.expander("With Iwaspoisoned.com, we found some food poisoned cases related to the area of the supplier __Buffalo City__"):
         st.write("Newest retailer got reported by consumer: __Red Lobster, Jersey Mike's Subs, Applebee's Grill + Bar__")
         st.write("Newest food got reported similar like Company A: __Red Lobster, Grill Fish, Fish'n'Chip__  ")
         st.write("Top reactions: __Nausea, Diarrhea, Vomitting__")
     
+    st.write("Some basic info about the __Company A__ in Food Data Centre Database")
     with st.expander("Food Data Centre Info:"):
         st.write("More than 80% of products in Company A have Dairy product")
         
