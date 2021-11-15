@@ -117,7 +117,7 @@ def single_analysis():
     
     st.write("We find something similar of __FDA Recall Database__")
     
-    with st.expander("Company A FDA Recall"):
+    with st.expander("Company A Related Recall FDA Recall"):
         recalling_firm_count = 0
         for i in range(len(value)):
             if value[i]["recalling_firm"] == "General Mills, Inc":
@@ -140,10 +140,26 @@ def single_analysis():
         st.write("100% of product is __Food Recall__ / 100% of product has been __Terminated__")
         st.write("With __30% of cases is Class I__, __70% of cases is Class II__ in ranking of dangerous")
     
-    with st.expander("Buffalo City FDA Recall"):
+    with st.expander("Buffalo City Location Related FDA Recall"):
         st.markdown("With __Buffalo City__ separately, there has been 31 times cases happened at here in the last 4 years")
         st.markdown("Top 5 Product recent got recall at Buffalo City: __Wegmans Milk Chocolate Sucker, Cake Truffles, ALL NATURAL ANCIENT GRAIN BREAD, GRANDMA'S perogies POTATO & BACON PEROGIES, Signature SELECT Vanilla Ice Cream & White Cake ICE CREAM CAKE__")
         st.markdown("Top 5 Firms got recall: __Landies Candies, Inc., Rich Products Corp, BUFFALO SAV, INC., The Sausage Maker, Inc., Upstate Niagara Cooperative, Inc.__")
+    
+    with st.expander("FDA Adverse Event (Product Poisoned)"):
+        st.write("__Company A__ has 199 times got report about product poisoned by FDA from 2015")
+        st.write("The most recent product recalled: A Cheerios, Multigrain Cheerios, Chip Cookie")
+        st.write("Consumers that were related to these recall are 60% female and 40% male, from 16 to 65 years old")
+        st.write("Most of the reactions are: __Headache, Diarrhoea, Coeliac Disease__")
+    
+    with st.expander("With Iwaspoisoned.com, we found some food poisoned cases related to the area of the supplier __Buffalo City__"):
+        st.write("Newest retailer got reported by consumer: __Red Lobster, Jersey Mike's Subs, Applebee's Grill + Bar__")
+        st.write("Newest food got reported similar like Company A: __Red Lobster, Grill Fish, Fish'n'Chip__  ")
+        st.write("Top reactions: __Nausea, Diarrhea, Vomitting__")
+    
+    with st.expander("Food Data Centre Info:"):
+        st.write("More than 80% of products in Company A have Dairy product")
+        
+    
         
 def main():
     data = pd.DataFrame()
