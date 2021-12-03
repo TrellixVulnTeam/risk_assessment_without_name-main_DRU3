@@ -1,8 +1,5 @@
 from __future__ import annotations
-from turtle import color
 
-from matplotlib import markers
-from matplotlib.pyplot import margins
 
 from phase_1.utilities import *
 from phase_2.connecting_api import *
@@ -16,9 +13,7 @@ import pandas as pd
 import streamlit as st
 import plotly.graph_objects as go
 import plotly.express as px
-import plotly.figure_factory as ff
 import os
-import random
 
 
 CURRENT_PATH = os.getcwd()
