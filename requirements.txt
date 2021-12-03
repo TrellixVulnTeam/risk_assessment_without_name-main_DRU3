@@ -4,3 +4,4 @@ pdfplumber
 camelot
 PyPDF2
 plotly
+tkinter
