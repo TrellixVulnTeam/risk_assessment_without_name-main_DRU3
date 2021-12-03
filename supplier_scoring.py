@@ -1,8 +1,4 @@
-from distutils.log import warn
-from logging import warning
-from unicodedata import name
 import streamlit as st
-import plotly.express as px
 import plotly.graph_objects as go
 from random import seed
 import random
