@@ -33,14 +33,6 @@ def cross_analysis():
     with st.expander("FSSC Audit Summarise Data"):
         st.write(data)
     
-#    fig = px.treemap(data, path = ["CB Name and Location","City", "Audit Recommendation"],
-#                        values = "Minor Nonconformities", color='City')
-#    fig.update_layout(title= 'Tree Map of Cross Analysis', width=1300, height=800, margin=dict(l = 0, r=60, b=40, t=40))
-#    st.plotly_chart(fig)
-#    with st.expander("Description and Explaination for Tree Map"):
-#        st.markdown("__Description__: This size of each box in tree map represented the number of non-conformities, the larger the size the bigger the non-conformance. Go from the largest outside box is the CB Name and Location, and continue to drill down to Facility Location and finally end up with Audit Recommendation")
-#        st.markdown("__Why this chart__: This chart is still in the development, due to the difficulty in reading style, this chart might need something to replace but still keep the integrity of the info")
-    
     st.markdown("### Audit Report Nonconformities Summarize")
     minor, major, critical = st.columns(3)
     with minor:
