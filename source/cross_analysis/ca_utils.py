@@ -1,4 +1,2 @@
 """Utility for Cross Analysis Module"""
-
-def get_dataset():
-    pass
+from __future__ import annotations

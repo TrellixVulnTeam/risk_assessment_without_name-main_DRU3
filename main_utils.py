@@ -6,6 +6,8 @@ import pandas as pd
 import streamlit as st
 
 from source.single_file_analysis.sa_analysis import analysis as sa_analysis
+from source.cross_analysis.cross_analysis import analysis as cross_analysis
+from source.supplier_scoring import scoring
 
 def select_function():
     add_selectbox = st.sidebar.selectbox(
@@ -13,10 +15,10 @@ def select_function():
         ("Cross-Analysis", "Single File Analysis", "Supplier Scoring")
     )
     if add_selectbox == "Cross-Analysis":
-        pass
+        cross_analysis()
     elif add_selectbox == "Single File Analysis":
         sa_analysis()
     elif add_selectbox == "Supplier Scoring":
-        pass
+        scoring()
 
     return add_selectbox
