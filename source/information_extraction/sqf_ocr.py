@@ -10,9 +10,9 @@ from contextlib import suppress
 
 import fitz
 import easyocr
+import streamlit as st
 import pdfplumber as plumber
 
-from PIL import Image
 
 KEY_HEADERS = {
     'food sector categories',
@@ -69,14 +69,12 @@ BOTTOM_DICT_REGEX_DELIMITER = re.compile(
 REGEX_NON_CONFORMITIES = re.compile(
     r'(?<=response:)(?:minor|major|fundamental|critical)', re.IGNORECASE)
 
-
+@st.cache(persist = True)
 def init_reader() -> None:
     """Initialize the reader OCR"""
-    global READER
+    READER = easyocr.Reader(['en'])
 
-    if not READER:
-        READER = easyocr.Reader(['en'])
-
+    return READER
 
 def pdf_to_image(file_contents: bytes):
     """Convert PDF Bytes to Image contents
@@ -106,7 +104,7 @@ def run_ocr(image) -> List[Tuple[List[str], str]]:
     Returns:
         paragraph_text (List[Tuple[List[str], str]): list of text after OCR the image
     """
-    init_reader()
+    READER = init_reader()
 
     if not READER:
         return []

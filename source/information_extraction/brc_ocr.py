@@ -1,17 +1,17 @@
 """BRC OCR Module"""
 from __future__ import annotations
-from io import BytesIO
 
 import re
-from typing import Dict, List
-
 import pdfplumber as plumber
 import streamlit as st
+from contextlib import suppress
+from typing import Dict, Iterable, List
 
-AUDIT_RESULT_HEADERS = ["audit grade", "audit type", "audit result"]
-KEY_HEADERS = [
+from pdfplumber import PDF
+
+AUDIT_RESULT_HEADERS = ("audit grade", "audit type", "audit result")
+PDFPLUMBER_EXTRACTOR_HEADERS = (
     "critical",
-    "number of non-conformities",
     "fundamental",
     "minor",
     "major",
@@ -24,213 +24,161 @@ KEY_HEADERS = [
     "site code",
     "previous audit date",
     "site name",
-]
+)
 
 
 def regex_checker(text: str,
-                  header_list: List[str],
-                  result_extract: Dict[str, str]) -> Dict[str, str]:
+                  headers: Iterable[str],
+                  results: Dict[str, str]) -> None:
+    """Checking regex stuff
+
+    Arguments:
+    -----------
+    text: :class:`str`
+        The input text that extract from the pdf file
+    headers: :class:`List[str]`
+        A list of key values that want to extract info from the pdf
+    results: :class:`Dict[str, str]`
+        The dictionary contains the result
     """
-    Using regex to extract information out based on header list
+    regex_delimiter = re.compile("|".join(headers), re.IGNORECASE)
 
-    Args:
-        text (str): the input text that extract from the pdf file
-        HEADER (list): a list of key values that want to extract info from the pdf
-        result_extract (Dict[str, str]): the dictionary contains the result
+    splitters = tuple(t.strip() for t in regex_delimiter.split(text)[1:])
+    delimiters = regex_delimiter.findall(text)
+    if not splitters or not delimiters:
+        return
 
-    Returns:
-        result_extract (Dict[str, str]): a dictionary that has been updated with newest values
-    """
-    raw_result = []
-    regex_delimiter = re.compile("|".join(header_list))
-    splitter = [text.strip()
-                for text in regex_delimiter.split(text.lower())[1:]]
-    delimiters = regex_delimiter.findall(text.lower())
-    if splitter and delimiters:
-        groupped = [(splitter, delimiters)]
-        raw_result.append(groupped)
-
-    for sub_list in raw_result:
-        for key, value in sub_list:
-            for index, value in enumerate(value):
-                if key[index].strip() != "":
-                    result_extract[value[index]] = key[index]
-
-    return result_extract
+    for splitter, delimiter in zip(splitters, delimiters):
+        if splitter.strip() != "":
+            results[delimiter] = splitter
 
 
-def get_company_name(pdf_file: BytesIO, result_extract: Dict[str, str]) -> Dict[str, str]:
+def get_company_name(file: PDF,
+                     results: Dict[str, str]) -> None:
     """Get the company information
 
-    Args:
-        pdf_file (BytesIO): the path to the pdf file
-        result_extract (Dict[str, str]): the dictionary that contains the result after extracted
-
-    Returns:
-        result_extract (Dict[str, str]): the dictionary that contains the result after extracted has been updated
+    Arguments:
+    -----------
+    pdf_file: :class:`bytes`
+    results: :class:`Dict[str, str]`
     """
-    with plumber.open(pdf_file) as file:
-        doc = file.pages[0]
-        word = doc.extract_words()
+    first_page = file.pages[0]
+    words: List[Dict[str, str | float]] = first_page.extract_words()
 
-    non_dup_list = [dict(t) for t in {tuple(d.items()) for d in word}]
-    sorted_dictionary = sorted(non_dup_list, key=lambda d: (d["top"], d['x0']))
+    words_unique = [dict(t) for t in {tuple(word.items()) for word in words}]
+    words_unique_sorted = sorted(
+        words_unique, key=lambda d: (d["top"], d['x0']))
 
-    range_list = []
-    for index, value in enumerate(sorted_dictionary):
-        if value["text"] == "Summary":
-            range_list.append(index)
-        elif value["text"] == "name":
-            range_list.append(index)
-    result_text_list = [i["text"] for i in sorted_dictionary]
+    result_texts = [str(i["text"]) for i in words_unique_sorted]
+    index_start = result_texts.index("Summary")
+    index_end = result_texts.index("name")
 
-    result_extract["company name"] = " ".join(
-        result_text_list[range_list[0] + 1: range_list[1]])
-    return result_extract
+    results["company name"] = " ".join(result_texts[index_start + 1: index_end])
 
 
-def extract_date(pdf_file, result_extract: Dict[str, str]) -> Dict[str, str]:
+def extract_date(file: PDF,
+                 results: Dict[str, str]) -> None:
     """Extract the start date audit from the BRC
 
-    Args:
-        pdf_file (Path): the path to the pdf file
-        result_extract (Dict[str, str]): the dictionary that contains the result after extracted
-
-    Returns:
-        result_extract (Dict[str, str]): the dictionary that contains the result after extracted has been updated
+    Arguments:
+    -----------
+    pdf_file: :class:`bytes`
+    results: :class:`dict`
     """
-    with plumber.open(pdf_file) as file:
-        for page in range(2, 5):
-            doc = file.pages[page]
-            sentence = doc.extract_text(y_tolerance=5).split(
-                "\n")  # extract text and split by line
-            sentence = [text.strip()
-                        for text in sentence if text]  # strip the word
-            sentence = [text for text in sentence if text]
-            # print(sentence)
-            for text in sentence:
-                if ("Audit Days" in text) or ("Audit Day" in text):
-                    if text:
-                        # date returned will be a datetime.datetime object. here we are only using the first match.
-                        result_extract["audit start date"] = sentence[sentence.index(
-                            text) + 1]
-                    else:
-                        result_extract["audit start date"] = None
-    return result_extract
+    for page_number in range(2, 5):
+        page = file.pages[page_number]
+        sentences: List[str] = page.extract_text(y_tolerance=5).split(
+            "\n")  # extract text and split by line
+        sentences = [text_stripped for text in sentences if (
+            text_stripped := text.strip())]  # strip the word
+        with suppress(StopIteration):
+            index = next(i for i, s in enumerate(
+                sentences) if "Audit Day" in s)
+            # date returned will be a datetime.datetime object. here we are only using the first match.
+            results["audit start date"] = sentences[index + 1]
+            return
 
 
-def check_major(text, result_extract):
+def check_major(text: str,
+                results: Dict[str, str]) -> None:
     """Checking the major non conformities value
 
-    Args:
-        text (str): the text that has been extracted from the pdf file
-        result_extract (Dict[str, str]): the dictionary that contains the result that has been extracted
-
-    Returns:
-        result_extract (Dict[str, str]): the dictionary that contains the reuslt that has been extracted
+    Arguments:
+    -----------
+    text: :class:`str`
+    results: :class:`Dict[str, str]`
     """
     splitter = text.split("major")
-    text = next(s for s in splitter if s).strip()
-    if text.isdigit():
-        result_extract["major"] = (text, 0)
+    try:
+        text = next(s for s in splitter if s).strip()
+        if text.isdigit():
+            results["major"] = text
+    except StopIteration:
+        results["major"] = "0"
+        results["minor"] = "0"
+        results["critical"] = "0"
+        results["fundamental"] = "0"
+
+def get_auditor_info(sentences: List[str],
+                     text: str, results: Dict[str, str]) -> None:
+    results["auditor company"] = sentences[sentences.index(text) - 1]
+    results["auditor name"] = text.lower().split("auditor: ")[-1]
 
 
-def get_auditor_info(sentence_list: List,
-                     result_extract: Dict[str, str],
-                     current_text: str) -> Dict[str, str]:
-    """Get the auditor name and company information
-
-    Args:
-        sentence_list (List): _description_
-        result_extract (List): _description_
-        current_text (List): _description_
-
-    Returns:
-        result_extract (Dict[str, str]): _description_
-    """
-    result_extract["auditor company"] = sentence_list[sentence_list.index(
-        current_text) - 1]
-    result_extract["auditor name"] = current_text.lower().split(
-        "auditor: ")[-1]
-    return result_extract
-
-
-def check_audit_result(text: str, result_extract: Dict[str, str]) -> Dict[str, str]:
-    """Get the audit result based on the pdf file
-    Args:
-        text (str): the input text to find info
-        result_extract (Dict[str, str]): the current result dictionary
-
-    Returns:
-        result_extract (Dict[str, str]): the updated version of result dictionary
-    """
+def check_audit_result(text: str,
+                       results: Dict[str, str]):
     if "audit grade" in text:
-        regex_checker(text, AUDIT_RESULT_HEADERS, result_extract)
-
-    return result_extract
+        regex_checker(text, AUDIT_RESULT_HEADERS, results)
 
 
-def get_address(pdf_file: BytesIO, result_extract: Dict[str, str]) -> Dict[str, str]:
-    """Get the address of the company
-
-    Args:
-        pdf_file (BytesIO): _description_
-        result_extract (Dict[str, str]): the current result dictionary
-
-    Returns:
-        result_extract (Dict[str, str]): the updated version of result dictionary
-    """
+def get_address(file: PDF,
+                results: Dict[str, str]):
     for page_number in range(1, 5):
-        with plumber.open(pdf_file) as file:
-            doc = file.pages[page_number]
-            word = doc.extract_words()
+        page = file.pages[page_number]
+        words = page.extract_words()
 
-            non_dup_list = [dict(t) for t in {tuple(d.items()) for d in word}]
-            sorted_dictionary = sorted(
-                non_dup_list, key=lambda d: (d["top"], d['x0']))
-        index_list = []
-        for index, value in enumerate(sorted_dictionary):
-            if value["text"] == "Address":
-                index_list.append(index)
-            elif value["text"] == "Country":
-                index_list.append(index)
-            result_text_list = [i["text"] for i in sorted_dictionary]
+        words_unique = [dict(t) for t in {tuple(d.items()) for d in words}]
+        words_unique_sorted = sorted(
+            words_unique, key=lambda d: (d["top"], d['x0']))
 
-            # print(" ".join(resultTextList[range[0] + 1:range[1]]))
-            result_extract["address"] = " ".join(
-                result_text_list[index_list[0] + 1: index_list[1]])
-            return result_extract
+        with suppress(ValueError):
+            result_texts = [str(i["text"]) for i in words_unique_sorted]
+            index_start = result_texts.index("Address")
+            index_end = result_texts.index("Country")
+            results["address"] = " ".join(result_texts[index_start + 1: index_end])
+            return
 
-
-def brc_scan(pdf_path: BytesIO, result_extract: Dict[str, str]) -> Dict[str, str]:
+def plumber_extractor(file: PDF, results: Dict[str, str]):
     """Main Function for extracting key information from PDF
 
-    Args:
-        pdf_file (BytesIO): _description_
-        result_extract (Dict[str, str]): the current result dictionary
-
-    Returns:
-        result_extract (Dict[str, str]): the updated version of result dictionary
+    Arguments:
+    -----------
+    file: :class:`PDF`
+    results: :class:`Dict[str, Tuple[str, int]]`
     """
-    with plumber.open(pdf_path) as pdf_file:
-        for page_number in range(2):
-            doc = pdf_file.pages[page_number]
-            sentence = doc.extract_text(y_tolerance=5).split(
-                "\n")  # extract text and split by line
-            sentence = [text.strip()
-                        for text in sentence if text]  # strip the word
-            # remove blank values
-            sentence = [text for text in sentence if text]
-            st.write(sentence)
+    for page_number in range(2):
+        page = file.pages[page_number]
+        sentences = page.extract_text(y_tolerance=5).split("\n")  # extract text and split by line
+        sentences = [t for text in sentences if (t := text.strip())]  # strip the word
 
-            for text in sentence:
-                if "auditor:" in text.lower():
-                    get_auditor_info(sentence, result_extract, text)
-                elif "major" in text.lower():
-                    check_major(text.lower(), result_extract)
-                elif "audit result" in text.lower():
-                    check_audit_result(text.lower(), result_extract)
-                else:
-                    regex_checker(text, KEY_HEADERS, result_extract)
+        for text in sentences:
+            text_lowered = text.lower()
+            if "auditor:" in text_lowered:
+                get_auditor_info(sentences, text, results)
+            elif "major" in text_lowered:
+                check_major(text_lowered, results)
+            elif "audit result" in text_lowered:
+                check_audit_result(text_lowered, results)
+            else:
+                regex_checker(text, PDFPLUMBER_EXTRACTOR_HEADERS, results)
 
-    return result_extract
+def brc_scan(file_contents: st.UploadedFile):
+    results = {}
+    with plumber.open(file_contents) as pdf_file:
+        plumber_extractor(pdf_file, results)
+        extract_date(pdf_file, results)
+        get_company_name(pdf_file, results)
+        get_address(pdf_file, results)
+
+    results =  {k.lower(): v for k, v in results.items()}
+    return results
