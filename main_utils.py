@@ -12,7 +12,7 @@ from source.supplier_scoring import scoring
 def select_function():
     add_selectbox = st.sidebar.selectbox(
         "How do you want to analysis the files ?",
-        ("Cross-Analysis", "Single File Analysis", "Supplier Scoring")
+        ("Single File Analysis", "Cross-Analysis", "Supplier Scoring")
     )
     if add_selectbox == "Cross-Analysis":
         cross_analysis()
