@@ -9,6 +9,7 @@ from source.single_file_analysis.sa_analysis import analysis as sa_analysis
 from source.cross_analysis.cross_analysis import analysis as cross_analysis
 from source.supplier_scoring import scoring
 
+
 def select_function():
     add_selectbox = st.sidebar.selectbox(
         "How do you want to analysis the files ?",
