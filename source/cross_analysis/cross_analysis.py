@@ -7,6 +7,11 @@ import streamlit as st
 import plotly.graph_objects as go
 import plotly.express as px
 
+def format_picker():
+    format_type = st.sidebar.selectbox(
+        "Please pick the format", ["BRC", "SQF"])
+    return format_type
+
 
 def data_summarize(dataframe):
     st.markdown("### Audit Report Nonconformities Summarize")
@@ -67,17 +72,25 @@ def audit_result_summary(dataframe):
 
 
 def top_best_supplier(dataframe):
-    dataframe.sort_values(["minor", "major", "critical", "fundamental"], ascending=[
-                          True, True, True, True], inplace=True)
-    st.table(dataframe[["company name", "address",
-             "audit grade", "certificate expiry date"]].head())
+    dataframe.sort_values(["minor", "major", "critical"], ascending=[
+                          True, True, True], inplace=True)
+    try:
+        st.table(dataframe[["company name", "address",
+                "audit grade", "certificate expiry date"]].head())
+    except KeyError:
+        st.table(dataframe[["company name",
+                "audit grade", "certificate expiry date"]].head())
 
 
 def top_worst_supplier(dataframe):
-    dataframe.sort_values(["minor", "major", "critical", "fundamental"], ascending=[
-                          False, False, False, False], inplace=True)
-    st.table(dataframe[["company name", "address",
-             "audit grade", "certificate expiry date"]].head())
+    dataframe.sort_values(["minor", "major", "critical"], ascending=[
+                          False, False, False], inplace=True)
+    try:
+        st.table(dataframe[["company name", "address",
+                "audit grade", "certificate expiry date"]].head())
+    except KeyError:
+        st.table(dataframe[["company name",
+                "audit grade", "certificate expiry date"]].head())
 
 
 def score_fluctuate(dataframe):
@@ -123,7 +136,8 @@ def score_fluctuate(dataframe):
 
 
 def analysis():
-    dataframe = pd.read_csv("data/brc_otrafyprod.csv").drop_duplicates()
+    format_type = format_picker()
+    dataframe = pd.read_csv(f"data/{format_type.lower()}_otrafyprod.csv").drop_duplicates(subset=["company name"])
     with st.expander("Dataset Summarise"):
         st.write(dataframe)
 
@@ -143,5 +157,6 @@ def analysis():
     st.markdown("### Top 5 worst supplier")
     top_worst_supplier(dataframe)
 
-    st.markdown("### Audit Grade Distribution")
-    score_fluctuate(dataframe)
+    if format_type == "BRC":
+        st.markdown("### Audit Grade Distribution")
+        score_fluctuate(dataframe)

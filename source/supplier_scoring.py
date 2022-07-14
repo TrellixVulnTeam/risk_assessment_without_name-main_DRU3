@@ -65,7 +65,7 @@ def ncs_graph(dataframe, company_name):
 
 def scoring():
     instruction()
-    data = pd.read_csv("data/whole_df.csv").drop_duplicates()
+    data = pd.read_csv("data/whole_df.csv").drop_duplicates(subset=["certificate expiry date"])
     company_name = company_picker(list(set((data["company name"]))))
     basic_information(data, company_name)
     metrics_count(data, company_name)

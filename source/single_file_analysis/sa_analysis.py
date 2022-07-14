@@ -82,7 +82,7 @@ def auditor_info(dataframe, company_name, year):
 
 def analysis():
     format_type = format_picker()
-    data = pd.read_csv(f"data/{format_type.lower()}_otrafyprod.csv")
+    data = pd.read_csv(f"data/{format_type.lower()}_otrafyprod.csv").drop_duplicates(subset=["company name"])
     company_name = company_picker(list(set((data["company name"]))))
     year = year_picker(data, company_name)
     basic_information(data, company_name)
