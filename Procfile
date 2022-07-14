@@ -1,1 +1,1 @@
-web: sh setup.sh && streamlit run visualization_without_name.py
+web: sh setup.sh && streamlit run main.py
