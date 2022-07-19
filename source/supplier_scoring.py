@@ -1,10 +1,14 @@
 """Supplier Scoring Module"""
 from __future__ import annotations
 
+import datetime
 import pandas as pd
 import streamlit as st
 import plotly.graph_objects as go
 
+from source.utility import check_date
+from source.api.fda_dashboard import inspections_citations_api, inspections_classification_api, import_refusals_api
+from source.api.fdc_api import call_api as fdc_api
 
 def company_picker(company_list):
     company_name = st.sidebar.selectbox(
@@ -24,19 +28,31 @@ def basic_information(dataframe, company_name):
 
 
 def metrics_count(dataframe, company_name):
-    dataframe = dataframe[dataframe["company name"].str.contains(company_name)]
+    dataframe = dataframe[dataframe["company name"].str.contains(company_name)].sort_values(by = "certificate expiry date", ascending = False)
+    ncs_list = list(dataframe["total_ncs"][dataframe["company name"].str.contains(company_name)])
     st.write(dataframe)
+    try:
+        score_changes = ncs_list[0] - ncs_list[1]
+    except IndexError:
+        score_changes = ncs_list[0]
+
     nc_counts, audit_grade, audit_status = st.columns(3)
     with nc_counts:
-        st.metric("Number of Nonconformities changes", list(
-            dataframe["total_ncs"])[0], " - 1 NCs", delta_color="inverse")
+        if ncs_list[0] == score_changes:
+            st.metric("Number of Nonconformities changes", ncs_list[0], "0 NCs", delta_color="off")
+        else:
+            st.metric("Number of Nonconformities changes", ncs_list[0], f" {score_changes} NCs", delta_color="inverse")
 
     with audit_grade:
         st.metric("Audit Report Grade", list(
-            dataframe["audit grade"])[-1], "Remain the same", delta_color="off")
+            dataframe["audit grade"])[-1], delta_color="off")
 
     with audit_status:
-        st.metric("Audit Report Status", "Valid")
+        exp_date = list(dataframe["certificate expiry date"])[0]
+        if check_date(datetime.datetime.strptime(exp_date, "%m/%d/%Y").date()):
+            st.metric("Audit Report Status", "Valid")
+        else:
+            st.metric("Audit Report Status", "Expired")
 
 
 def instruction():
@@ -60,7 +76,27 @@ def ncs_graph(dataframe, company_name):
         yaxis_title='Number of Nonconformities',
         margin=dict(l=10, r=400, t=10, b=50), width=1500, height=400)
     nc_line.update_xaxes(showgrid=False, zeroline=False)
+    nc_line.update_yaxes(showgrid=False, zeroline=False)
     st.plotly_chart(nc_line)
+
+def connect_to_fda_dashboard(dataframe, company_name):
+    dataframe = dataframe[dataframe["company name"].str.contains(company_name)].sort_values(by = "certificate expiry date", ascending = False)
+    with st.expander("INSPECTIONS CITATIONS FDA"):
+        st.write(inspections_citations_api(list(dataframe["cleaned company name"])))
+    
+    with st.expander("INSPECTIONS CLASSIFICATIONS FDA"):
+        st.write(inspections_classification_api(list(dataframe["cleaned company name"])))
+    
+    with st.expander("IMPORT REFUSAL FDA"):
+        st.write(import_refusals_api(list(dataframe["cleaned company name"])))
+
+def connect_to_fdc_dashboard(dataframe, company_name):
+    dataframe = dataframe[dataframe["company name"].str.contains(company_name)].sort_values(by = "certificate expiry date", ascending = False)
+    with st.expander("RELATED PRODUCT"):
+        try:
+            st.write(fdc_api(list(dataframe["cleaned company name"])[0]))
+        except KeyError:
+            st.write("No Information")
 
 
 def scoring():
@@ -70,3 +106,5 @@ def scoring():
     basic_information(data, company_name)
     metrics_count(data, company_name)
     ncs_graph(data, company_name)
+    connect_to_fda_dashboard(data, company_name)
+    connect_to_fdc_dashboard(data, company_name)
